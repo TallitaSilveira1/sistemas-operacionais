@@ -10,8 +10,9 @@ public class Child extends Thread {
     private Semaphore spaces;
     private Semaphore items;
     private Semaphore mutex;
+    private ChildCallBack callBack;
 
-    public Child(int id, boolean ball, int playing_time, int quiet_time) {
+    public Child(int id, boolean ball, int playing_time, int quiet_time, Semaphore spaces, Semaphore items, Semaphore mutex) {
         this.id = id;
         this.ball = ball;
         this.playing_time = playing_time;
@@ -22,25 +23,70 @@ public class Child extends Thread {
     }
 
     public void ballGet () throws InterruptedException {//consumidor
-
+        if(items.availablePermits() == 0) {
+            System.out.println("Bloqueado sem bola no cesto!");
+        }
         items.acquire();
         mutex.acquire();
+        Basket.balls--;
         mutex.release();
         spaces.release();
-
     }
 
     public void ballBack () throws InterruptedException { //produtor
-
+        if(spaces.availablePermits() == 0) {
+            System.out.println("Bloqueado cesto cheio!");
+        }
         spaces.acquire();
         mutex.acquire();
+        Basket.balls++;
         mutex.release();
         items.release();
-
     }
 
-
     public void run () {
+        while (true) {
+            if(ball) {
+                callBack.writeInLog("Criança vai brincar!\n");
+                play();
+                try {
+                    ballBack();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                ball = false;
+                quiet();
+            } else {
+                try {
+                    ballGet();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                ball = true;
+            }
+        }
+    }
+
+    private void quiet() {
+        for(int i = 0; i < quiet_time * 10000; i++) {
+            for(int j = 0; j < 100000; j++) {
+                for(int k = 0; k < 49999 + 1; k++) {
+                    int x = k*299 + j/899 + i/199;
+                }
+                System.out.println(j);
+            }
+        }
+    }
+
+    private void play() {
+        for(int i = 0; i < playing_time * 10000; i++) {
+            for(int j = 0; j < 100000; j++) {
+                for(int k = 0; k < 49999 + 1; k++) {
+                    int x = k*299 + j/899 + i/199;
+                }
+                System.out.println(j);
+            }
+        }
     }
 
     public long getId() { return id; }
@@ -71,5 +117,37 @@ public class Child extends Thread {
 
     public void setQuiet_time(int quiet_time) {
         this.quiet_time = quiet_time;
+    }
+
+    public Semaphore getSpaces() {
+        return spaces;
+    }
+
+    public void setSpaces(Semaphore spaces) {
+        this.spaces = spaces;
+    }
+
+    public Semaphore getItems() {
+        return items;
+    }
+
+    public void setItems(Semaphore items) {
+        this.items = items;
+    }
+
+    public Semaphore getMutex() {
+        return mutex;
+    }
+
+    public void setMutex(Semaphore mutex) {
+        this.mutex = mutex;
+    }
+
+    public ChildCallBack getCallBack() {
+        return callBack;
+    }
+
+    public void setCallBack(ChildCallBack callBack) {
+        this.callBack = callBack;
     }
 }
