@@ -1,0 +1,10 @@
+<component name="ArtifactManager">
+  <artifact type="javafx" name="sistemas-operacionais">
+    <output-path>$PROJECT_DIR$/out/artifacts/sistemas_operacionais</output-path>
+    <root id="root">
+      <element id="archive" name="sistemas_operacionais.jar">
+        <element id="module-output" name="sistemas-operacionais" />
+      </element>
+    </root>
+  </artifact>
+</component>
