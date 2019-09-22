@@ -2,11 +2,13 @@ package sample;
 
 import java.util.concurrent.Semaphore;
 
-public class Child extends Thread {
+public class Child<quiet_time> extends Thread {
     private int id;
     private boolean ball;
     private int playing_time;
     private int quiet_time;
+    private int timePlayingCounter;
+    private int timeQuietCounter;
     private Semaphore spaces;
     private Semaphore items;
     private Semaphore mutex;
@@ -22,71 +24,122 @@ public class Child extends Thread {
         this.mutex = mutex;
     }
 
-    public void ballGet () throws InterruptedException {//consumidor
-        if(items.availablePermits() == 0) {
-            System.out.println("Bloqueado sem bola no cesto!");
+    public void ballBack(){
+        if (spaces.availablePermits() == 0) {
+            callBack.writeInLog("O cesto está cheio! " + id + " Bloqueada!\n");
+            callBack.spacesFull(this);
         }
-        items.acquire();
-        mutex.acquire();
-        Basket.balls--;
-        mutex.release();
-        spaces.release();
-    }
-
-    public void ballBack () throws InterruptedException { //produtor
-        if(spaces.availablePermits() == 0) {
-            System.out.println("Bloqueado cesto cheio!");
+        try {
+            spaces.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
-        spaces.acquire();
-        mutex.acquire();
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         Basket.balls++;
+        callBack.ballBack();
         mutex.release();
         items.release();
+        callBack.writeInLog(this.id + "  colocou uma bola no cesto!\nBolas no cesto: " + Basket.balls + "\n");
+
+    }
+
+    public void ballGet() {
+        if(items.availablePermits() == 0) {
+            callBack.writeInLog("O cesto está sem bola! " + id + " Bloqueada!\n");
+            callBack.noBall(this);
+        }
+        try {
+            items.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        try {
+            mutex.acquire();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        Basket.balls--;
+        callBack.ballGet();
+        mutex.release();
+        spaces.release();
+        callBack.writeInLog(this.id + "  pegou uma bola do cesto!\nBolas no cesto: " + Basket.balls + "\n");
     }
 
     public void run () {
-        while (true) {
+        while(true) {
+            quiet_time = timeQuietCounter;
+            playing_time = timePlayingCounter;
             if(ball) {
-                callBack.writeInLog("Criança vai brincar!\n");
-                play();
-                try {
-                    ballBack();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                mySleep(timePlayingCounter);
+                ballBack();
                 ball = false;
-                quiet();
+                callBack.quiet(this);
+                mySleep(timeQuietCounter);
             } else {
-                try {
-                    ballGet();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                ballGet();
+                callBack.playing(this);
                 ball = true;
             }
+            super.run();
         }
     }
 
-    private void quiet() {
-        for(int i = 0; i < quiet_time * 10000; i++) {
-            for(int j = 0; j < 100000; j++) {
-                for(int k = 0; k < 49999 + 1; k++) {
-                    int x = k*299 + j/899 + i/199;
-                }
-                System.out.println(j);
+
+    private void quiet(){
+        for(int i = 0; i < quiet_time; timeQuietCounter--) {
+        for (int j = 0; j < 40000; j++) {
+            System.out.println(j);
+            for (int k = 0; k < 100000; k++) {
+                int x = 100/100 + k - j + i;
             }
         }
+        callBack.method();
     }
+}
+
 
     private void play() {
-        for(int i = 0; i < playing_time * 10000; i++) {
-            for(int j = 0; j < 100000; j++) {
-                for(int k = 0; k < 49999 + 1; k++) {
-                    int x = k*299 + j/899 + i/199;
-                }
+        for(int i = 0; i < playing_time; timePlayingCounter--) {
+            for(int j = 0; j < 40000; j++) {
                 System.out.println(j);
+                for(int k = 0; k < 100000; k++) {
+                    int x = 100/100 + k - j + i;
+                }
             }
+            callBack.method();
         }
+    }
+
+    private void mySleep(long tempo){
+            if(ball) callBack.writeInLog(this.id + "  está brincando!\n");
+            else callBack.writeInLog(this.id + "  está quieta\n");
+
+            long atual = System.currentTimeMillis();
+            long decorrido = 0, milisegundos = 0;
+            while (decorrido < tempo) {
+                milisegundos = (System.currentTimeMillis() - atual);
+                if( (milisegundos / 1000) > decorrido) {
+                    if(ball) timePlayingCounter--;
+                    else timeQuietCounter--;
+                    callBack.method();
+                }
+                if(ball && timePlayingCounter == 0) {
+                    timePlayingCounter = playing_time;
+                    break;
+                }
+                if(ball && timeQuietCounter == 0) {
+                    timeQuietCounter = quiet_time;
+                    break;
+                }
+                decorrido = milisegundos / 1000;
+            }
+
+            if(ball) callBack.writeInLog(this.id + "  terminou de brincar 😵\n");
+            else callBack.writeInLog(this.id + "  não está mais quieta!\n");
     }
 
     public long getId() { return id; }
